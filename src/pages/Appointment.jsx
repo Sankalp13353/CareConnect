@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { use, useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { assets } from '../assets/assets';
@@ -6,16 +6,75 @@ import { assets } from '../assets/assets';
 const Appointment = () => {
   const {docId} = useParams();
   const {doctors,currencySymbol} = useContext(AppContext);
+  const daysOfWeek = ['SUN','MON','TUE','WED','THUR','FRI','SAT'];
 
   const [docInfo, setDocInfo] = useState(null);
+  const [docSlots,setDocSlots] = useState([]);
+  const [slotIndex,setSlotIndex] = useState(0);
+  const [slotTime,setSlotTime] = useState("");
+
 
 const fetchDocInfo = async() => {
   const docInfo = doctors.find(doc => doc._id === docId);
   setDocInfo(docInfo);
 }
+
+const getAvailableSlots = async() => {
+  setDocSlots([])
+
+  // getting current date
+  let today = new Date()
+
+  for(let i = 0;i< 7;i++){
+    // getting date with index
+    let currentDate = new Date(today)
+    currentDate.setDate(today.getDate()+i)
+
+    // setting endTime of the date with index
+    let endTime = new Date()
+    endTime.setDate(today.getDate()+i)
+    endTime.setHours(21,0,0,0)
+
+    // setting Hours
+    if(today.getDate() === currentDate.getDate()){
+      currentDate.setHours(currentDate.setHours() > 10 ? currentDate.setHours()+1 : 10)
+      currentDate.setMinutes(currentDate.setMinutes() > 30 ? 30 : 0)
+    }else{
+      currentDate.setHours(10)
+      currentDate.setMinutes(0)
+    } 
+    
+    let timeSlots = []
+    while(currentDate < endTime){
+      let formattedTime = currentDate.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+      timeSlots.push({
+        dateTime: new Date(currentDate),
+        time: formattedTime 
+      })
+      currentDate.setMinutes(currentDate.getMinutes()+30)
+    }
+    setDocSlots(prev => ([...prev,timeSlots]))
+
+  }
+
+
+}
+
+
+
 useEffect(()=>{
   fetchDocInfo()
 },[doctors,docId]);
+
+
+useEffect(()=>{
+  getAvailableSlots()
+},[docInfo])
+
+
+useEffect(()=>{
+
+},[docSlots])
 
   return docInfo &&(
     <div>
@@ -41,6 +100,22 @@ useEffect(()=>{
 
           <p className='text-gray-500 font-medium mt-4'>Appointment fee: <span className='text-gray-600'>{currencySymbol}{docInfo.fees}</span> </p>
 
+        </div>
+      </div>
+
+      <div className='sm:ml-72 sm:pl-4 mt-4 font-medium text-gray-700'>
+        <p>
+          Booking Slots
+        </p>
+        <div>
+          {
+            docSlots.length && docSlots.map((item,index)=>(
+              <div key={index}>
+                <p>{item[0] && daysOfWeek[item[0].dateTime.getDay()]}</p>
+                <p>{item[0] && item[0].dateTime.getDate( )}</p>
+              </div>
+            ))
+          }
         </div>
       </div>
 
